@@ -1,0 +1,38 @@
+[
+  {
+    "organization": "Pakistan Army",
+    "category": "Officer",
+    "position": "PMA Long Course",
+    "question": "What is the primary motivation for you to choose the PMA Long Course over a civilian corporate career?",
+    "idealAnswer": "Serving in the army is a calling of honor and duty to defend the nation. It provides disciplined leadership development and a chance to protect the sovereignty of Pakistan directly, which a corporate career cannot offer.",
+    "difficulty": "medium",
+    "tags": ["motivation", "pma", "service"]
+  },
+  {
+    "organization": "Pakistan Army",
+    "category": "Officer",
+    "position": "PMA Long Course",
+    "question": "How do you define the role and responsibilities of a Commissioned Officer in the field?",
+    "idealAnswer": "A Commissioned Officer is responsible for tactical leadership, the operational efficiency, discipline, welfare, and morale of their troops. They must lead by personal example, make decisions under extreme combat stress, and achieve strategic objectives.",
+    "difficulty": "hard",
+    "tags": ["leadership", "discipline", "role"]
+  },
+  {
+    "organization": "Pakistan Air Force",
+    "category": "Officer",
+    "position": "GD Pilot",
+    "question": "Why is uncorrected perfect eyesight a strict requirement for a GD Pilot in the PAF?",
+    "idealAnswer": "GD Pilots operate advanced high-speed combat aircraft. Perfect visual acuity, stereoscopic depth perception, and rapid color recognition are crucial for night operations, weapon locking, and spatial orientation in high-G maneuvers.",
+    "difficulty": "easy",
+    "tags": ["technical", "medical", "pilots"]
+  },
+  {
+    "organization": "FIA",
+    "category": "Investigation Wing",
+    "position": "Inspector",
+    "question": "What steps would you take if a high-profile citizen tries to bribe you during a white-collar crime investigation?",
+    "idealAnswer": "I would immediately reject the bribe, document the attempt, log it in my official diary, report it to my superior officer, and add a charge of bribery/corruption to the candidate file under relevant FIA and PPC laws.",
+    "difficulty": "hard",
+    "tags": ["integrity", "ethics", "law"]
+  }
+]

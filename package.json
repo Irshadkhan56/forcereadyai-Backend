@@ -1,0 +1,41 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "seed:orgs": "node src/scripts/seedOrganizations.js",
+    "seed:positions": "node src/scripts/seedCategoriesAndPositions.js",
+    "seed:plans": "node src/scripts/seedPlansAndChecklists.js",
+    "seed:admin": "node src/scripts/seedAdmin.js",
+    "seed:all": "node src/scripts/seedCategoriesAndPositions.js",
+    "seed": "node src/scripts/seedOrganizations.js && node src/scripts/seedCategoriesAndPositions.js && node src/scripts/seedPlansAndChecklists.js",
+    "db:delete-ai": "node src/scripts/deleteAiQuestions.js",
+    "db:seed-custom": "node src/scripts/seedCustomQuestions.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.10.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.0",
+    "morgan": "^1.11.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.11"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
