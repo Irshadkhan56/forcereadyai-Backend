@@ -51,7 +51,7 @@ const getTransporter = () => {
  * @param {string} resetToken 
  */
 export const sendResetPasswordEmail = async (recipientEmail, resetToken) => {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://forcereadyai-frontend-evtcslqfh-irshadkhan56s-projects.vercel.app';
   const resetLink = `${frontendUrl}/reset-password/${resetToken}`;
   const sender = process.env.EMAIL_FROM || 'ForceReady AI <noreply@forceready.ai>';
 

@@ -25,11 +25,13 @@ const app = express();
 app.use(helmet({
   crossOriginResourcePolicy: false,
 }));
+const corsOrigin = process.env.CORS_ORIGIN || '*';
 app.use(cors({
-  origin: process.env.CORS_ORIGIN === '*' ? '*' : process.env.CORS_ORIGIN,
+  origin: corsOrigin === '*' ? '*' : corsOrigin,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret']
 }));
+
 
 // Request Parsers
 app.use(express.json());

@@ -15,22 +15,39 @@ connectDB();
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
-  logger.info(`Server is running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+let server;
+// Don't start a separate listener in Vercel serverless environment
+if (!process.env.VERCEL) {
+  server = app.listen(PORT, () => {
+    logger.info(`Server is running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  });
+} else {
+  logger.info(`Server initialized in Vercel serverless mode.`);
+}
 
 // Handle Unhandled Rejections
 process.on('unhandledRejection', (err) => {
   logger.error(`Unhandled Rejection! Shutting down server gracefully...`, err);
-  server.close(() => {
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+  } else {
     process.exit(1);
-  });
+  }
 });
 
 // Handle Sigterm
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received. Shutting down server gracefully...');
-  server.close(() => {
+  if (server) {
+    server.close(() => {
+      logger.info('Process terminated.');
+    });
+  } else {
     logger.info('Process terminated.');
-  });
+  }
 });
+
+export default app;
+
