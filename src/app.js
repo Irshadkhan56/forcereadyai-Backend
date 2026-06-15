@@ -51,7 +51,12 @@ if (process.env.NODE_ENV === 'development') {
 // API Routes
 app.use('/health', healthRoutes);
 app.use('/auth', authRoutes);
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Serves uploaded files; uses /tmp in Vercel serverless environment
+const uploadDir = process.env.VERCEL 
+  ? '/tmp' 
+  : path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadDir));
+
 app.use('/organizations', organizationRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/positions', positionRoutes);

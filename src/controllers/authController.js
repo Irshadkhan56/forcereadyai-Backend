@@ -6,9 +6,10 @@ import logger from '../utils/logger.js';
 
 // Helper — generate JWT
 const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, {
+  jwt.sign({ id }, process.env.JWT_SECRET || 'forceready_secret_fallback_key_2026', {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
+
 
 // Helper — safe user object (never expose password)
 const safeUser = (user) => ({
