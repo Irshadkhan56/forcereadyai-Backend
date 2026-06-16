@@ -70,7 +70,8 @@ app.get('/', (req, res) => {
     success: true,
     message: 'Welcome to ForceReady AI Backend API',
     version: '1.0.0',
-    documentation: '/health for API status'
+    documentation: '/health for API status',
+    frontendUrl: process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'Frontend URL not configured',
   });
 });
 
