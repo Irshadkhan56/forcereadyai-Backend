@@ -96,7 +96,12 @@ const seedDB = async () => {
     console.log(`[Seeding] Database dropped.`);
 
     // 1. Seed Departments
-    const createdDepts = await Department.insertMany(departments);
+    const createdDepts = [];
+    for (const dept of departments) {
+      const d = new Department(dept);
+      await d.save();
+      createdDepts.push(d);
+    }
     console.log(`[Seeding] ${createdDepts.length} departments seeded.`);
 
     const deptMap = {};

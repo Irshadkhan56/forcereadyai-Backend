@@ -43,7 +43,7 @@ const departmentSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to generate URL-friendly slug
-departmentSchema.pre('save', function (next) {
+departmentSchema.pre('save', function () {
   if (this.isModified('name')) {
     this.slug = this.name
       .toLowerCase()
@@ -52,7 +52,6 @@ departmentSchema.pre('save', function (next) {
       .replace(/[\s_]+/g, '-')  // replace spaces/underscores with hyphens
       .replace(/^-+|-+$/g, ''); // trim leading/trailing hyphens
   }
-  next();
 });
 
 const Department = mongoose.model('Department', departmentSchema);
