@@ -285,13 +285,19 @@ export const forgotPassword = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please provide an email address' });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
 
-    // Anti-enumeration protection
-    if (!user || user.authProvider === 'google') {
-      return res.status(200).json({
-        success: true,
-        message: 'An OTP verification code has been sent to your email address.',
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'This email is not registered. Please register first.',
+      });
+    }
+
+    if (user.authProvider === 'google') {
+      return res.status(400).json({
+        success: false,
+        message: 'This account uses Google Sign-In. Password reset is disabled.',
       });
     }
 
