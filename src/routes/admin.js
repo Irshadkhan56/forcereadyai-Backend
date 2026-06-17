@@ -8,21 +8,19 @@ import {
   blockUser,
   unblockUser,
   deleteUser,
-  createOrganization,
-  updateOrganization,
-  deleteOrganization,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-  createPosition,
-  updatePosition,
-  deletePosition,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
   getQuestions,
   createQuestion,
   updateQuestion,
   deleteQuestion,
   uploadBook,
   importQuestionsJson,
+  getMedicalTemplate,
+  saveMedicalTemplate,
+  getPhysicalTemplate,
+  savePhysicalTemplate,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -59,20 +57,10 @@ router.patch('/users/block/:id', blockUser);
 router.patch('/users/unblock/:id', unblockUser);
 router.delete('/users/:id', deleteUser);
 
-// ── Organizations ──────────────────────────────────────────
-router.post('/organizations', createOrganization);
-router.put('/organizations/:id', updateOrganization);
-router.delete('/organizations/:id', deleteOrganization);
-
-// ── Categories ─────────────────────────────────────────────
-router.post('/categories', createCategory);
-router.put('/categories/:id', updateCategory);
-router.delete('/categories/:id', deleteCategory);
-
-// ── Positions ──────────────────────────────────────────────
-router.post('/positions', createPosition);
-router.put('/positions/:id', updatePosition);
-router.delete('/positions/:id', deletePosition);
+// ── Departments ────────────────────────────────────────────
+router.post('/departments', createDepartment);
+router.put('/departments/:id', updateDepartment);
+router.delete('/departments/:id', deleteDepartment);
 
 // ── Question Bank ──────────────────────────────────────────
 router.get('/questions', getQuestions);
@@ -83,5 +71,11 @@ router.delete('/questions/:id', deleteQuestion);
 
 // ── Book Upload & AI Extraction ────────────────────────────
 router.post('/upload-book', upload.single('file'), uploadBook);
+
+// ── Medical & Physical Template Management ──────────────────
+router.get('/medical-tests/template', getMedicalTemplate);
+router.put('/medical-tests/template', saveMedicalTemplate);
+router.get('/physical-tests/template', getPhysicalTemplate);
+router.put('/physical-tests/template', savePhysicalTemplate);
 
 export default router;

@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
 import User from '../models/User.js';
-import Organization from '../models/Organization.js';
-import Category from '../models/Category.js';
-import Position from '../models/Position.js';
+import Department from '../models/Department.js';
 import Question from '../models/Question.js';
 import InterviewSession from '../models/InterviewSession.js';
+import MedicalChecklist from '../models/MedicalChecklist.js';
+import PhysicalPlan from '../models/PhysicalPlan.js';
 import { extractQuestionsFromText } from '../services/geminiService.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -21,9 +21,7 @@ export const getStats = async (req, res, next) => {
       totalUsers,
       activeUsers,
       blockedUsers,
-      totalOrgs,
-      totalCategories,
-      totalPositions,
+      totalDepts,
       totalQuestions,
       totalSessions,
       recentUsers,
@@ -32,9 +30,7 @@ export const getStats = async (req, res, next) => {
       User.countDocuments({ role: 'candidate' }),
       User.countDocuments({ role: 'candidate', isBlocked: false }),
       User.countDocuments({ role: 'candidate', isBlocked: true }),
-      Organization.countDocuments(),
-      Category.countDocuments(),
-      Position.countDocuments(),
+      Department.countDocuments(),
       Question.countDocuments(),
       InterviewSession.countDocuments(),
       User.find({ role: 'candidate' })
@@ -45,17 +41,14 @@ export const getStats = async (req, res, next) => {
         .sort({ createdAt: -1 })
         .limit(5)
         .populate('user', 'name email')
-        .populate('organization', 'name')
-        .populate('position', 'name'),
+        .populate('departmentId', 'name'),
     ]);
 
     res.status(200).json({
       success: true,
       data: {
         users: { total: totalUsers, active: activeUsers, blocked: blockedUsers },
-        organizations: totalOrgs,
-        categories: totalCategories,
-        positions: totalPositions,
+        departments: totalDepts,
         questions: totalQuestions,
         sessions: totalSessions,
         recentUsers,
@@ -71,10 +64,6 @@ export const getStats = async (req, res, next) => {
 // USER MANAGEMENT
 // ─────────────────────────────────────────────────────────────
 
-/**
- * @desc    Get all candidates with search & filter
- * @route   GET /admin/users?search=&status=&page=&limit=
- */
 export const getUsers = async (req, res, next) => {
   const { search = '', status = 'all', page = 1, limit = 10 } = req.query;
   try {
@@ -112,18 +101,13 @@ export const getUsers = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Get single user + their session history
- * @route   GET /admin/users/:id
- */
 export const getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     const sessions = await InterviewSession.find({ user: user._id })
-      .populate('organization', 'name')
-      .populate('position', 'name')
+      .populate('departmentId', 'name')
       .sort({ createdAt: -1 })
       .limit(10);
 
@@ -133,10 +117,6 @@ export const getUserById = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Block a user
- * @route   PATCH /admin/users/block/:id
- */
 export const blockUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
@@ -151,10 +131,6 @@ export const blockUser = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Unblock a user
- * @route   PATCH /admin/users/unblock/:id
- */
 export const unblockUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
@@ -168,10 +144,6 @@ export const unblockUser = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Delete a user
- * @route   DELETE /admin/users/:id
- */
 export const deleteUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
@@ -186,99 +158,41 @@ export const deleteUser = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// ORGANIZATION MANAGEMENT
+// DEPARTMENT MANAGEMENT
 // ─────────────────────────────────────────────────────────────
 
-export const createOrganization = async (req, res, next) => {
+export const createDepartment = async (req, res, next) => {
   try {
-    const org = await Organization.create(req.body);
-    res.status(201).json({ success: true, data: org });
+    const dept = await Department.create(req.body);
+    res.status(201).json({ success: true, data: dept });
   } catch (error) {
     next(error);
   }
 };
 
-export const updateOrganization = async (req, res, next) => {
+export const updateDepartment = async (req, res, next) => {
   try {
-    const org = await Organization.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    if (!org) return res.status(404).json({ success: false, message: 'Organization not found' });
-    res.status(200).json({ success: true, data: org });
+    const dept = await Department.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!dept) return res.status(404).json({ success: false, message: 'Department not found' });
+    res.status(200).json({ success: true, data: dept });
   } catch (error) {
     next(error);
   }
 };
 
-export const deleteOrganization = async (req, res, next) => {
+export const deleteDepartment = async (req, res, next) => {
   try {
-    const org = await Organization.findByIdAndDelete(req.params.id);
-    if (!org) return res.status(404).json({ success: false, message: 'Organization not found' });
-    res.status(200).json({ success: true, message: 'Organization deleted successfully' });
-  } catch (error) {
-    next(error);
-  }
-};
+    const dept = await Department.findByIdAndDelete(req.params.id);
+    if (!dept) return res.status(404).json({ success: false, message: 'Department not found' });
+    
+    // Clean up associated resources
+    await Promise.all([
+      Question.deleteMany({ departmentId: req.params.id }),
+      MedicalChecklist.deleteMany({ departmentId: req.params.id }),
+      PhysicalPlan.deleteMany({ departmentId: req.params.id }),
+    ]);
 
-// ─────────────────────────────────────────────────────────────
-// CATEGORY MANAGEMENT
-// ─────────────────────────────────────────────────────────────
-
-export const createCategory = async (req, res, next) => {
-  try {
-    const cat = await Category.create(req.body);
-    res.status(201).json({ success: true, data: cat });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const updateCategory = async (req, res, next) => {
-  try {
-    const cat = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    if (!cat) return res.status(404).json({ success: false, message: 'Category not found' });
-    res.status(200).json({ success: true, data: cat });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const deleteCategory = async (req, res, next) => {
-  try {
-    const cat = await Category.findByIdAndDelete(req.params.id);
-    if (!cat) return res.status(404).json({ success: false, message: 'Category not found' });
-    res.status(200).json({ success: true, message: 'Category deleted successfully' });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ─────────────────────────────────────────────────────────────
-// POSITION MANAGEMENT
-// ─────────────────────────────────────────────────────────────
-
-export const createPosition = async (req, res, next) => {
-  try {
-    const pos = await Position.create(req.body);
-    res.status(201).json({ success: true, data: pos });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const updatePosition = async (req, res, next) => {
-  try {
-    const pos = await Position.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    if (!pos) return res.status(404).json({ success: false, message: 'Position not found' });
-    res.status(200).json({ success: true, data: pos });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const deletePosition = async (req, res, next) => {
-  try {
-    const pos = await Position.findByIdAndDelete(req.params.id);
-    if (!pos) return res.status(404).json({ success: false, message: 'Position not found' });
-    res.status(200).json({ success: true, message: 'Position deleted successfully' });
+    res.status(200).json({ success: true, message: 'Department and associated content deleted successfully' });
   } catch (error) {
     next(error);
   }
@@ -288,26 +202,20 @@ export const deletePosition = async (req, res, next) => {
 // QUESTION BANK
 // ─────────────────────────────────────────────────────────────
 
-/**
- * @desc    Get questions with search + filter + pagination
- * @route   GET /admin/questions
- */
 export const getQuestions = async (req, res, next) => {
-  const { search = '', organization, category, position, difficulty, page = 1, limit = 15 } = req.query;
+  const { search = '', departmentId, subCategory, position, difficulty, page = 1, limit = 15 } = req.query;
   try {
     const query = {};
-    if (organization && mongoose.Types.ObjectId.isValid(organization)) query.organization = organization;
-    if (category && mongoose.Types.ObjectId.isValid(category)) query.category = category;
-    if (position && mongoose.Types.ObjectId.isValid(position)) query.position = position;
+    if (departmentId && mongoose.Types.ObjectId.isValid(departmentId)) query.departmentId = departmentId;
+    if (subCategory) query.subCategory = subCategory;
+    if (position) query.position = position;
     if (difficulty) query.difficulty = difficulty;
     if (search) query.$text = { $search: search };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [questions, total] = await Promise.all([
       Question.find(query)
-        .populate('organization', 'name')
-        .populate('category', 'name')
-        .populate('position', 'name')
+        .populate('departmentId', 'name')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -327,10 +235,6 @@ export const getQuestions = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Create a single question
- * @route   POST /admin/questions
- */
 export const createQuestion = async (req, res, next) => {
   try {
     const question = await Question.create({ ...req.body, createdBy: req.user._id, source: 'manual' });
@@ -340,10 +244,6 @@ export const createQuestion = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Update a question
- * @route   PUT /admin/questions/:id
- */
 export const updateQuestion = async (req, res, next) => {
   try {
     const question = await Question.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
@@ -354,10 +254,6 @@ export const updateQuestion = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Delete a question
- * @route   DELETE /admin/questions/:id
- */
 export const deleteQuestion = async (req, res, next) => {
   try {
     const question = await Question.findByIdAndDelete(req.params.id);
@@ -372,41 +268,26 @@ export const deleteQuestion = async (req, res, next) => {
 // BOOK UPLOAD & AI EXTRACTION
 // ─────────────────────────────────────────────────────────────
 
-/**
- * @desc    Upload a book file, extract text, call AI to identify Q&A, save to Question Bank
- * @route   POST /admin/upload-book
- * @access  Admin only
- *
- * Requires multipart/form-data with fields:
- *   - file       : PDF, DOCX, or TXT
- *   - organization, category (required)
- *   - position   (optional)
- *   - difficulty (optional, default: medium)
- */
 export const uploadBook = async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    const { organization, category, position, difficulty = 'medium' } = req.body;
-    if (!organization || !category) {
-      return res.status(400).json({ success: false, message: 'Organization and category are required' });
+    const { departmentId, subCategory = '', position = '', difficulty = 'medium' } = req.body;
+    if (!departmentId) {
+      return res.status(400).json({ success: false, message: 'Department ID is required' });
     }
 
-    // Extract raw text from the uploaded buffer
     const fileText = extractTextFromBuffer(req.file);
-
     if (!fileText || fileText.trim().length < 50) {
       return res.status(400).json({
         success: false,
-        message: 'Could not extract meaningful text from the uploaded file. Please check the file format.',
+        message: 'Could not extract meaningful text from the uploaded file.',
       });
     }
 
-    // Call AI to extract structured Q&A
     const extractedItems = await extractQuestionsFromText(fileText);
-
     if (!extractedItems || extractedItems.length === 0) {
       return res.status(200).json({
         success: true,
@@ -415,11 +296,10 @@ export const uploadBook = async (req, res, next) => {
       });
     }
 
-    // Save all extracted questions to the Question Bank
     const questionsToSave = extractedItems.map((item) => ({
-      organization,
-      category,
-      ...(position ? { position } : {}),
+      departmentId,
+      subCategory: subCategory || '',
+      position: position || '',
       question: item.question,
       idealAnswer: item.answer || item.idealAnswer || '',
       difficulty: item.difficulty || difficulty,
@@ -441,10 +321,6 @@ export const uploadBook = async (req, res, next) => {
   }
 };
 
-/**
- * Extract plain text from uploaded file buffer
- * Supports: TXT (direct), PDF and DOCX (basic extraction)
- */
 function extractTextFromBuffer(file) {
   const mimeType = file.mimetype;
   const buffer = file.buffer;
@@ -454,7 +330,6 @@ function extractTextFromBuffer(file) {
   }
 
   if (mimeType === 'application/pdf') {
-    // Basic PDF text extraction — strips binary and extracts readable ASCII
     const raw = buffer.toString('binary');
     const text = raw
       .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
@@ -467,7 +342,6 @@ function extractTextFromBuffer(file) {
     mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     mimeType === 'application/msword'
   ) {
-    // Basic DOCX text extraction — strips XML and extracts text nodes
     const raw = buffer.toString('utf-8', 0, Math.min(buffer.length, 500000));
     const text = raw
       .replace(/<[^>]+>/g, ' ')
@@ -480,11 +354,10 @@ function extractTextFromBuffer(file) {
   return null;
 }
 
-/**
- * @desc    Import questions in bulk via JSON payload
- * @route   POST /admin/questions/import
- * @access  Admin only
- */
+// ─────────────────────────────────────────────────────────────
+// BULK QUESTIONS IMPORT
+// ─────────────────────────────────────────────────────────────
+
 export const importQuestionsJson = async (req, res, next) => {
   try {
     const questions = req.body;
@@ -496,10 +369,7 @@ export const importQuestionsJson = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid payload: Array of questions cannot be empty' });
     }
 
-    const orgCache = {};
-    const catCache = {};
-    const posCache = {};
-
+    const deptCache = {};
     const questionsToSave = [];
     const errors = [];
 
@@ -509,22 +379,18 @@ export const importQuestionsJson = async (req, res, next) => {
       const q = questions[i];
       const index = i + 1;
 
-      if (!q.organization || typeof q.organization !== 'string' || !q.organization.trim()) {
-        errors.push(`Row ${index}: "organization" name is required and must be a string.`);
-        continue;
-      }
-      if (!q.category || typeof q.category !== 'string' || !q.category.trim()) {
-        errors.push(`Row ${index}: "category" name is required and must be a string.`);
+      if (!q.departmentName || typeof q.departmentName !== 'string' || !q.departmentName.trim()) {
+        errors.push(`Row ${index}: "departmentName" is required and must be a string.`);
         continue;
       }
       if (!q.question || typeof q.question !== 'string' || !q.question.trim()) {
-        errors.push(`Row ${index}: "question" text is required and must be a string.`);
+        errors.push(`Row ${index}: "question" text is required.`);
         continue;
       }
 
-      const orgName = q.organization.trim();
-      const catName = q.category.trim();
-      const posName = q.position ? q.position.trim() : '';
+      const deptName = q.departmentName.trim();
+      const subCategory = q.subCategory ? q.subCategory.trim() : '';
+      const position = q.position ? q.position.trim() : '';
       const questionText = q.question.trim();
       const idealAnswerText = q.idealAnswer ? q.idealAnswer.trim() : '';
 
@@ -538,80 +404,33 @@ export const importQuestionsJson = async (req, res, next) => {
 
       let tagsValue = [];
       if (Array.isArray(q.tags)) {
-        tagsValue = q.tags.map(t => typeof t === 'string' ? t.trim() : String(t).trim()).filter(Boolean);
+        tagsValue = q.tags.map(t => String(t).trim()).filter(Boolean);
       } else if (q.tags && typeof q.tags === 'string') {
         tagsValue = q.tags.split(',').map(t => t.trim()).filter(Boolean);
       }
 
       try {
-        // 1. Resolve Organization
-        let orgId;
-        const orgCacheKey = orgName.toLowerCase();
-        if (orgCache[orgCacheKey]) {
-          orgId = orgCache[orgCacheKey];
+        let deptId;
+        const cacheKey = deptName.toLowerCase();
+        if (deptCache[cacheKey]) {
+          deptId = deptCache[cacheKey];
         } else {
-          let org = await Organization.findOne({ name: { $regex: new RegExp('^' + escapeRegExp(orgName) + '$', 'i') } });
-          if (!org) {
-            org = await Organization.create({
-              name: orgName,
+          let dept = await Department.findOne({ name: { $regex: new RegExp('^' + escapeRegExp(deptName) + '$', 'i') } });
+          if (!dept) {
+            dept = await Department.create({
+              name: deptName,
               description: `Auto-created during JSON import of questions.`,
-              logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(orgName)}&background=random`,
+              logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(deptName)}&background=random`,
             });
           }
-          orgId = org._id;
-          orgCache[orgCacheKey] = orgId;
-        }
-
-        // 2. Resolve Category
-        let catId;
-        const catCacheKey = `${orgId}_${catName.toLowerCase()}`;
-        if (catCache[catCacheKey]) {
-          catId = catCache[catCacheKey];
-        } else {
-          let cat = await Category.findOne({
-            organization: orgId,
-            name: { $regex: new RegExp('^' + escapeRegExp(catName) + '$', 'i') }
-          });
-          if (!cat) {
-            cat = await Category.create({
-              name: catName,
-              organization: orgId,
-              description: `Auto-created during JSON import of questions.`,
-            });
-          }
-          catId = cat._id;
-          catCache[catCacheKey] = catId;
-        }
-
-        // 3. Resolve Position
-        let posId = null;
-        if (posName) {
-          const posCacheKey = `${orgId}_${catId}_${posName.toLowerCase()}`;
-          if (posCache[posCacheKey]) {
-            posId = posCache[posCacheKey];
-          } else {
-            let pos = await Position.findOne({
-              organization: orgId,
-              category: catId,
-              name: { $regex: new RegExp('^' + escapeRegExp(posName) + '$', 'i') }
-            });
-            if (!pos) {
-              pos = await Position.create({
-                name: posName,
-                organization: orgId,
-                category: catId,
-                description: `Auto-created during JSON import of questions.`,
-              });
-            }
-            posId = pos._id;
-            posCache[posCacheKey] = posId;
-          }
+          deptId = dept._id;
+          deptCache[cacheKey] = deptId;
         }
 
         questionsToSave.push({
-          organization: orgId,
-          category: catId,
-          position: posId,
+          departmentId: deptId,
+          subCategory,
+          position,
           question: questionText,
           idealAnswer: idealAnswerText,
           difficulty: difficultyValue,
@@ -621,23 +440,21 @@ export const importQuestionsJson = async (req, res, next) => {
         });
 
       } catch (err) {
-        errors.push(`Row ${index}: Database resolution failed: ${err.message}`);
+        errors.push(`Row ${index}: Database error: ${err.message}`);
       }
     }
 
     if (errors.length > 0 && questionsToSave.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Import failed due to validation or database errors',
+        message: 'Import failed due to errors',
         errors
       });
     }
 
     let savedQuestions = await Question.insertMany(questionsToSave);
     savedQuestions = await Question.populate(savedQuestions, [
-      { path: 'organization', select: 'name' },
-      { path: 'category', select: 'name' },
-      { path: 'position', select: 'name' }
+      { path: 'departmentId', select: 'name' }
     ]);
 
     res.status(201).json({
@@ -655,3 +472,64 @@ export const importQuestionsJson = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// ADMIN MEDICAL & PHYSICAL TEMPLATE MANAGERS
+// ─────────────────────────────────────────────────────────────
+
+export const getMedicalTemplate = async (req, res, next) => {
+  const { departmentId, subCategory = '', position = '' } = req.query;
+  try {
+    let template = await MedicalChecklist.findOne({ departmentId, subCategory, position });
+    if (!template) {
+      template = { departmentId, subCategory, position, criteria: [] };
+    }
+    res.status(200).json({ success: true, data: template });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const saveMedicalTemplate = async (req, res, next) => {
+  const { departmentId, subCategory = '', position = '', criteria } = req.body;
+  try {
+    let template = await MedicalChecklist.findOne({ departmentId, subCategory, position });
+    if (template) {
+      template.criteria = criteria;
+      await template.save();
+    } else {
+      template = await MedicalChecklist.create({ departmentId, subCategory, position, criteria });
+    }
+    res.status(200).json({ success: true, message: 'Medical checklist template saved successfully', data: template });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPhysicalTemplate = async (req, res, next) => {
+  const { departmentId, subCategory = '', position = '' } = req.query;
+  try {
+    let template = await PhysicalPlan.findOne({ departmentId, subCategory, position });
+    if (!template) {
+      template = { departmentId, subCategory, position, exercises: [] };
+    }
+    res.status(200).json({ success: true, data: template });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const savePhysicalTemplate = async (req, res, next) => {
+  const { departmentId, subCategory = '', position = '', exercises } = req.body;
+  try {
+    let template = await PhysicalPlan.findOne({ departmentId, subCategory, position });
+    if (template) {
+      template.exercises = exercises;
+      await template.save();
+    } else {
+      template = await PhysicalPlan.create({ departmentId, subCategory, position, exercises });
+    }
+    res.status(200).json({ success: true, message: 'Physical plan template saved successfully', data: template });
+  } catch (error) {
+    next(error);
+  }
+};

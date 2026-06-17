@@ -2,23 +2,21 @@ import { body, param } from 'express-validator';
 import { validate } from './authValidator.js';
 
 export const startSessionValidator = [
-  body('organizationId')
+  body('departmentId')
     .notEmpty()
-    .withMessage('Organization ID is required')
+    .withMessage('Department ID is required')
     .isMongoId()
-    .withMessage('Invalid Organization ID format'),
+    .withMessage('Invalid Department ID format'),
 
-  body('categoryId')
-    .notEmpty()
-    .withMessage('Category ID is required')
-    .isMongoId()
-    .withMessage('Invalid Category ID format'),
+  body('subCategory')
+    .optional()
+    .isString()
+    .withMessage('subCategory must be a string'),
 
-  body('positionId')
-    .notEmpty()
-    .withMessage('Position ID is required')
-    .isMongoId()
-    .withMessage('Invalid Position ID format'),
+  body('position')
+    .optional()
+    .isString()
+    .withMessage('position must be a string'),
 
   body('count')
     .optional()

@@ -5,18 +5,22 @@ import UserMedicalProgress from '../models/UserMedicalProgress.js';
 import logger from '../utils/logger.js';
 
 /**
- * Calculates and saves readiness metrics for a specific user
+ * Calculates and saves readiness metrics for a specific user filtered by track
  * @param {string} userId 
+ * @param {string} departmentId
+ * @param {string} subCategory
+ * @param {string} position
  * @returns {Promise<Object>}
  */
-export const calculateUserReadiness = async (userId) => {
+export const calculateUserReadiness = async (userId, departmentId, subCategory = '', position = '') => {
   try {
     // 1. Calculate Interview Readiness
-    // Find completed sessions and compute average score
-    const completedSessions = await InterviewSession.find({
-      user: userId,
-      status: 'completed',
-    });
+    const interviewQuery = { user: userId, status: 'completed' };
+    if (departmentId) interviewQuery.departmentId = departmentId;
+    if (subCategory !== undefined) interviewQuery.subCategory = subCategory;
+    if (position !== undefined) interviewQuery.position = position;
+
+    const completedSessions = await InterviewSession.find(interviewQuery);
 
     let interviewReadiness = 0;
     if (completedSessions.length > 0) {
@@ -25,8 +29,12 @@ export const calculateUserReadiness = async (userId) => {
     }
 
     // 2. Calculate Physical Readiness
-    // Find physical progress document
-    const physicalProgressDoc = await UserPhysicalProgress.findOne({ user: userId });
+    const physicalQuery = { user: userId };
+    if (departmentId) physicalQuery.departmentId = departmentId;
+    if (subCategory !== undefined) physicalQuery.subCategory = subCategory;
+    if (position !== undefined) physicalQuery.position = position;
+
+    const physicalProgressDoc = await UserPhysicalProgress.findOne(physicalQuery);
     let physicalReadiness = 0;
     let totalExercises = 0;
     let completedExercises = 0;
@@ -38,8 +46,12 @@ export const calculateUserReadiness = async (userId) => {
     }
 
     // 3. Calculate Medical Readiness
-    // Find medical progress document
-    const medicalProgressDoc = await UserMedicalProgress.findOne({ user: userId });
+    const medicalQuery = { user: userId };
+    if (departmentId) medicalQuery.departmentId = departmentId;
+    if (subCategory !== undefined) medicalQuery.subCategory = subCategory;
+    if (position !== undefined) medicalQuery.position = position;
+
+    const medicalProgressDoc = await UserMedicalProgress.findOne(medicalQuery);
     let medicalReadiness = 0;
     let totalCriteria = 0;
     let passedCriteria = 0;
@@ -53,7 +65,6 @@ export const calculateUserReadiness = async (userId) => {
     }
 
     // 4. Calculate Overall Readiness
-    // Formula: 40% Interview, 40% Physical, 20% Medical
     const overallReadiness = Math.round(
       interviewReadiness * 0.4 + physicalReadiness * 0.4 + medicalReadiness * 0.2
     );

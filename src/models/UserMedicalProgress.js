@@ -28,10 +28,20 @@ const userMedicalProgressSchema = new mongoose.Schema(
       required: [true, 'User reference is required'],
       unique: true, // One medical progress tracker per user
     },
-    position: {
+    departmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Position',
-      required: [true, 'Position reference is required'],
+      ref: 'Department',
+      required: [true, 'Department reference is required'],
+    },
+    subCategory: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    position: {
+      type: String,
+      trim: true,
+      default: '',
     },
     criteria: [userCriteriaProgressSchema],
   },

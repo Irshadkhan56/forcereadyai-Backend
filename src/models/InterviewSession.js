@@ -39,7 +39,6 @@ const questionDetailSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
-  // Keep legacy feedback fields for front-end compatibility
   strengths: {
     type: String,
     default: null,
@@ -62,24 +61,27 @@ const interviewSessionSchema = new mongoose.Schema(
       required: [true, 'User reference is required'],
       index: true,
     },
-    // Dual field for absolute backward compatibility during database population and queries
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'User reference is required'],
       index: true,
     },
-    organization: {
+    departmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Organization',
-      required: [true, 'Organization reference is required'],
+      ref: 'Department',
+      required: [true, 'Department reference is required'],
       index: true,
     },
+    subCategory: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     position: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Position',
-      required: [true, 'Position reference is required'],
-      index: true,
+      type: String,
+      trim: true,
+      default: '',
     },
     questions: [questionDetailSchema],
     isVoice: {
@@ -110,7 +112,6 @@ const interviewSessionSchema = new mongoose.Schema(
   }
 );
 
-// Compounded index
 interviewSessionSchema.index({ userId: 1, status: 1 });
 interviewSessionSchema.index({ user: 1, status: 1 });
 

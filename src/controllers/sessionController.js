@@ -1,11 +1,8 @@
 import mongoose from 'mongoose';
 import InterviewSession from '../models/InterviewSession.js';
-import Organization from '../models/Organization.js';
-import Category from '../models/Category.js';
-import Position from '../models/Position.js';
+import Department from '../models/Department.js';
 import Question from '../models/Question.js';
-import { evaluateCandidateAnswerAgainstIdeal } from '../services/geminiService.js';
-import { getMockQuestions } from '../services/geminiService.js';
+import { evaluateCandidateAnswerAgainstIdeal, getMockQuestions } from '../services/geminiService.js';
 
 /**
  * @desc    Start a new interview session
@@ -13,89 +10,73 @@ import { getMockQuestions } from '../services/geminiService.js';
  * @access  Private
  */
 export const startSession = async (req, res, next) => {
-  const { organizationId, categoryId, positionId, count = 20, isVoice = false } = req.body;
+  const { departmentId, subCategory = '', position = '', count = 20, isVoice = false } = req.body;
 
   try {
-    // 1. Fetch organization
-    const organization = await Organization.findById(organizationId);
-    if (!organization) {
+    // 1. Fetch Department
+    const department = await Department.findById(departmentId);
+    if (!department) {
       return res.status(404).json({
         success: false,
-        message: 'Organization not found',
+        message: 'Department not found',
       });
     }
 
-    // 2. Fetch category
-    const category = await Category.findById(categoryId);
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: 'Category not found',
-      });
-    }
-
-    // 3. Fetch position
-    const position = await Position.findById(positionId);
-    if (!position) {
-      return res.status(404).json({
-        success: false,
-        message: 'Position not found',
-      });
-    }
-
-    // 4. Fetch questions from database
+    // 2. Fetch questions from database
     let dbQuestions = await Question.find({
-      organization: organizationId,
-      category: categoryId,
-      position: positionId,
+      departmentId,
+      subCategory: subCategory || '',
+      position: position || '',
     });
 
-    // Self-healing check: seed defaults if database is empty of questions for this rank
+    // Self-healing check: seed defaults if database is empty of questions for this department/track
     if (dbQuestions.length === 0) {
       if (process.env.DISABLE_AI_FALLBACK === 'true') {
         return res.status(400).json({
           success: false,
-          message: `No questions found for ${position.name} in the database. Please seed or add custom questions first.`,
+          message: `No questions found for this track in the database. Please seed or add custom questions first.`,
         });
       }
 
-      const mockList = getMockQuestions(organization.name, category.name, position.name, 20);
+      // Generate simulated/mock questions
+      const mockList = getMockQuestions(department.name, subCategory, position, 20);
       const seedItems = mockList.map((mq) => ({
-        organization: organizationId,
-        category: categoryId,
-        position: positionId,
+        departmentId,
+        subCategory: subCategory || '',
+        position: position || '',
         question: mq.question,
-        idealAnswer: `An exemplary response would demonstrate thorough preparation, confidence, role compatibility, and high moral integrity suited for a ${position.name} role.`,
+        idealAnswer: `An exemplary response would demonstrate thorough preparation, confidence, role compatibility, and high moral integrity suited for a ${position || department.name} role.`,
         difficulty: mq.difficulty ? mq.difficulty.toLowerCase() : 'medium',
-        tags: [category.name.toLowerCase(), position.name.toLowerCase()],
+        tags: [department.name.toLowerCase()],
         source: 'ai_generated',
       }));
       await Question.insertMany(seedItems);
 
       // Re-fetch seeded questions
       dbQuestions = await Question.find({
-        organization: organizationId,
-        category: categoryId,
-        position: positionId,
+        departmentId,
+        subCategory: subCategory || '',
+        position: position || '',
       });
     }
 
-    // 5. Select randomized subset based on count parameter
+    // 3. Select randomized subset based on count parameter
     const limit = parseInt(count) || 20;
     const shuffled = dbQuestions.sort(() => 0.5 - Math.random());
     const selectedQuestions = shuffled.slice(0, limit);
 
-    // 6. Create session doc
+    // 4. Create session doc
     const session = await InterviewSession.create({
       userId: req.user._id,
       user: req.user._id, // Dual support
-      organization: organizationId,
-      position: positionId,
+      departmentId,
+      subCategory: subCategory || '',
+      position: position || '',
       isVoice: !!isVoice,
       questions: selectedQuestions.map((q) => ({
         questionId: q._id,
         question: q.question,
-        category: category.name,
+        category: q.subCategory || 'General',
         difficulty: q.difficulty,
         idealAnswer: q.idealAnswer || '',
       })),
@@ -104,10 +85,9 @@ export const startSession = async (req, res, next) => {
       overallPercentage: 0,
     });
 
-    // Populate organization and position details
+    // Populate department details
     const populatedSession = await InterviewSession.findById(session._id)
-      .populate('organization', 'name logo')
-      .populate('position', 'name');
+      .populate('departmentId', 'name logo');
 
     res.status(201).json({
       success: true,
@@ -128,10 +108,9 @@ export const saveAnswer = async (req, res, next) => {
   const { questionIndex, answer } = req.body;
 
   try {
-    // 1. Find session and populate org/position names
+    // 1. Find session and populate department name
     const session = await InterviewSession.findById(sessionId)
-      .populate('organization', 'name')
-      .populate('position', 'name');
+      .populate('departmentId', 'name');
 
     if (!session) {
       return res.status(404).json({
@@ -248,8 +227,7 @@ export const getSession = async (req, res, next) => {
     }
 
     const session = await InterviewSession.findById(sessionId)
-      .populate('organization', 'name logo')
-      .populate('position', 'name');
+      .populate('departmentId', 'name logo');
 
     if (!session) {
       return res.status(404).json({
@@ -289,8 +267,7 @@ export const getHistory = async (req, res, next) => {
     const sessions = await InterviewSession.find({
       $or: [{ userId: req.user._id }, { user: req.user._id }],
     })
-      .populate('organization', 'name logo')
-      .populate('position', 'name')
+      .populate('departmentId', 'name logo')
       .sort({ createdAt: -1 });
 
     res.status(200).json({

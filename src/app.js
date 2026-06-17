@@ -12,10 +12,10 @@ import logger from './utils/logger.js';
 // Route imports
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
-import organizationRoutes from './routes/organization.js';
-import categoryRoutes from './routes/category.js';
-import positionRoutes from './routes/position.js';
+import departmentRoutes from './routes/department.js';
 import interviewRoutes from './routes/interview.js';
+import medicalRoutes from './routes/medical.js';
+import physicalRoutes from './routes/physical.js';
 import progressRoutes from './routes/progress.js';
 import adminRoutes from './routes/admin.js';
 
@@ -31,7 +31,6 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret']
 }));
-
 
 // Request Parsers
 app.use(express.json());
@@ -51,16 +50,17 @@ if (process.env.NODE_ENV === 'development') {
 // API Routes
 app.use('/health', healthRoutes);
 app.use('/auth', authRoutes);
+
 // Serves uploaded files; uses /tmp in Vercel serverless environment
 const uploadDir = process.env.VERCEL 
   ? '/tmp' 
   : path.join(process.cwd(), 'uploads');
 app.use('/uploads', express.static(uploadDir));
 
-app.use('/organizations', organizationRoutes);
-app.use('/categories', categoryRoutes);
-app.use('/positions', positionRoutes);
+app.use('/departments', departmentRoutes);
 app.use('/interviews', interviewRoutes);
+app.use('/medical-tests', medicalRoutes);
+app.use('/physical-tests', physicalRoutes);
 app.use('/progress', progressRoutes);
 app.use('/admin', adminRoutes);
 

@@ -2,23 +2,19 @@ import { body } from 'express-validator';
 import { validate } from './authValidator.js';
 
 export const generateQuestionsValidator = [
-  body('organizationId')
+  body('departmentId')
     .notEmpty()
-    .withMessage('Organization ID is required')
+    .withMessage('Department ID is required')
     .isMongoId()
-    .withMessage('Invalid Organization ID format'),
+    .withMessage('Invalid Department ID format'),
 
-  body('categoryId')
-    .notEmpty()
-    .withMessage('Category ID is required')
-    .isMongoId()
-    .withMessage('Invalid Category ID format'),
+  body('subCategory')
+    .optional()
+    .isString(),
 
-  body('positionId')
-    .notEmpty()
-    .withMessage('Position ID is required')
-    .isMongoId()
-    .withMessage('Invalid Position ID format'),
+  body('position')
+    .optional()
+    .isString(),
 
   body('count')
     .optional()
@@ -39,17 +35,19 @@ export const evaluateResponseValidator = [
     .notEmpty()
     .withMessage('Answer text is required'),
 
-  body('organizationId')
+  body('departmentId')
     .notEmpty()
-    .withMessage('Organization ID is required')
+    .withMessage('Department ID is required')
     .isMongoId()
-    .withMessage('Invalid Organization ID format'),
+    .withMessage('Invalid Department ID format'),
 
-  body('positionId')
-    .notEmpty()
-    .withMessage('Position ID is required')
-    .isMongoId()
-    .withMessage('Invalid Position ID format'),
+  body('subCategory')
+    .optional()
+    .isString(),
+
+  body('position')
+    .optional()
+    .isString(),
 
   validate,
 ];

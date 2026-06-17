@@ -2,22 +2,21 @@ import mongoose from 'mongoose';
 
 const questionSchema = new mongoose.Schema(
   {
-    organization: {
+    departmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Organization',
-      required: [true, 'Organization is required'],
+      ref: 'Department',
+      required: [true, 'Department ID is required'],
       index: true,
     },
-    category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category',
-      required: [true, 'Category is required'],
-      index: true,
+    subCategory: {
+      type: String,
+      trim: true,
+      default: '',
     },
     position: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Position',
-      index: true,
+      type: String,
+      trim: true,
+      default: '',
     },
     question: {
       type: String,
@@ -44,14 +43,13 @@ const questionSchema = new mongoose.Schema(
       index: true,
       default: null,
     },
-    // Source tracking
     source: {
       type: String,
       enum: ['manual', 'ai_extracted', 'ai_generated'],
       default: 'manual',
     },
     sourceFile: {
-      type: String, // original filename if AI-extracted
+      type: String,
       default: '',
     },
   },

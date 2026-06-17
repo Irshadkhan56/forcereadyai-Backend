@@ -17,11 +17,21 @@ const criteriaTemplateSchema = new mongoose.Schema({
 
 const medicalChecklistSchema = new mongoose.Schema(
   {
-    position: {
+    departmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Position',
-      required: [true, 'Position reference is required'],
-      unique: true,
+      ref: 'Department',
+      required: [true, 'Department reference is required'],
+      index: true,
+    },
+    subCategory: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    position: {
+      type: String,
+      trim: true,
+      default: '',
     },
     criteria: [criteriaTemplateSchema],
   },
@@ -29,6 +39,9 @@ const medicalChecklistSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Compound unique index so each target within a department has only one checklist
+medicalChecklistSchema.index({ departmentId: 1, subCategory: 1, position: 1 }, { unique: true });
 
 const MedicalChecklist = mongoose.model('MedicalChecklist', medicalChecklistSchema);
 

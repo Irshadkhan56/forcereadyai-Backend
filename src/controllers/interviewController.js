@@ -8,13 +8,13 @@ import { evaluateCandidateAnswerAgainstIdeal } from '../services/geminiService.j
  * @access  Private
  */
 export const getInterviewQuestions = async (req, res, next) => {
-  const { organizationId, categoryId, positionId, count = 20 } = req.query;
+  const { departmentId, subCategory, position, count = 20 } = req.query;
 
   try {
     const query = {};
-    if (organizationId) query.organization = organizationId;
-    if (categoryId) query.category = categoryId;
-    if (positionId) query.position = positionId;
+    if (departmentId) query.departmentId = departmentId;
+    if (subCategory) query.subCategory = subCategory;
+    if (position) query.position = position;
 
     const questions = await Question.find(query).limit(parseInt(count));
 
