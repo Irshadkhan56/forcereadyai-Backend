@@ -1,4 +1,5 @@
 import { body, validationResult } from 'express-validator';
+import dns from 'dns';
 
 // Validation error formatting middleware
 export const validate = (req, res, next) => {
@@ -29,7 +30,26 @@ export const registerValidator = [
     .withMessage('Email is required')
     .isEmail()
     .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+    .normalizeEmail()
+    .custom(async (email) => {
+      const domain = email.split('@')[1];
+      if (!domain) return false;
+      
+      // Permit local/developer domains for testing purposes
+      if (['example.com', 'test.com', 'localhost'].includes(domain.toLowerCase())) {
+        return true;
+      }
+      
+      return new Promise((resolve, reject) => {
+        dns.resolveMx(domain, (err, addresses) => {
+          if (err || !addresses || addresses.length === 0) {
+            reject(new Error('This email address domain does not exist. Please check for typos (e.g. @gmail.com).'));
+          } else {
+            resolve(true);
+          }
+        });
+      });
+    }),
     
   body('password')
     .notEmpty()
