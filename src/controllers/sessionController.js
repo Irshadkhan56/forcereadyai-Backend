@@ -87,7 +87,7 @@ export const startSession = async (req, res, next) => {
 
     // Populate department details
     const populatedSession = await InterviewSession.findById(session._id)
-      .populate('departmentId', 'name logo');
+      .populate('departmentId', 'name logo slug');
 
     res.status(201).json({
       success: true,
@@ -110,7 +110,7 @@ export const saveAnswer = async (req, res, next) => {
   try {
     // 1. Find session and populate department name
     const session = await InterviewSession.findById(sessionId)
-      .populate('departmentId', 'name');
+      .populate('departmentId', 'name slug');
 
     if (!session) {
       return res.status(404).json({
@@ -227,7 +227,7 @@ export const getSession = async (req, res, next) => {
     }
 
     const session = await InterviewSession.findById(sessionId)
-      .populate('departmentId', 'name logo');
+      .populate('departmentId', 'name logo slug');
 
     if (!session) {
       return res.status(404).json({
@@ -267,7 +267,7 @@ export const getHistory = async (req, res, next) => {
     const sessions = await InterviewSession.find({
       $or: [{ userId: req.user._id }, { user: req.user._id }],
     })
-      .populate('departmentId', 'name logo')
+      .populate('departmentId', 'name logo slug')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
